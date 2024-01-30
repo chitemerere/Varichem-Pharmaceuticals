@@ -1312,6 +1312,18 @@ if password_guess == st.secrets["password"]:
                     period_nps = data.groupby('Period')['Score'].apply(calculate_nps).reset_index(name='NPS')
                     st.write("Net Promoter Score for each Period:")
                     st.write(period_nps)
+                    
+                    # Plotting NPS by period
+                    st.write("NPS Trend Over Periods:")
+                    plt.figure(figsize=(10, 6))
+                    period_nps.plot(kind='bar', color='skyblue')
+                    plt.title('Net Promoter Score by Period')
+                    plt.xlabel('Period')
+                    plt.ylabel('Net Promoter Score')
+                    plt.xticks(rotation=45)
+                    plt.grid(axis='y')
+                    st.pyplot(plt)
+                    
                 else:
                     st.error("CSV file must have columns named 'Period' and 'Score'")
 

@@ -112,6 +112,15 @@ def cluster_segments (rfm):
         return 'At Risk'
     else:
         return 'Sleelpig Customers'
+    
+# Function to calculate NPS
+def calculate_nps(scores):
+    promoters = len([score for score in scores if score >= 9])
+    detractors = len([score for score in scores if score <= 6])
+    total_responses = len(scores)
+
+    nps = ((promoters - detractors) / total_responses) * 100
+    return nps
 
 # Streamlit application layout
 st.image("logo.png", width=200)
@@ -120,7 +129,7 @@ st.markdown("<h1 style='font-size:30px;'>Varichem Pharmaceuticals Sales Analysis
 # Sidebar for navigation
 st.sidebar.title('Navigation')
 options = st.sidebar.radio('Select an Analysis:', 
-                           ['Trend Analysis','Geographical Analysis','Product Performance', 'Pharmacy Performance', 'Alerts','Sales Forecasting', 'Market Segmentation', 'Sentiment Analysis'])
+                           ['Trend Analysis','Geographical Analysis','Product Performance', 'Pharmacy Performance', 'Alerts','Sales Forecasting', 'Market Segmentation', 'Sentiment Analysis', 'Net Promoter Score'])
 
 # Password input
 password_guess = st.text_input('What is the Password?', type ="password").strip()
@@ -1286,6 +1295,25 @@ if password_guess == st.secrets["password"]:
                 combined_data = pd.concat(brand_sentiments)
                 fig3 = px.bar(combined_data, x="brand", y="scores", color="sentiment", barmode="group", title='Sentiment Comparison Between Brands', color_discrete_map=sentiment_colors)
                 st.plotly_chart(fig3, use_container_width=True)
+                
+        elif options == 'Net Promoter Score':
+            # Streamlit app layout
+            st.subheader("Net Promoter Score Calculator")
+
+            # File uploader for periodic data
+            uploaded_file = st.file_uploader("Upload your CSV file with periodic data", type="csv")
+            if uploaded_file is not None:
+                # Read data
+                data = pd.read_csv(uploaded_file)
+
+                # Check if the CSV has the expected columns: 'Period' and 'Score'
+                if 'Period' in data.columns and 'Score' in data.columns:
+                    # Calculate NPS for each period
+                    period_nps = data.groupby('Period')['Score'].apply(calculate_nps).reset_index(name='NPS')
+                    st.write("Net Promoter Score for each Period:")
+                    st.write(period_nps)
+                else:
+                    st.error("CSV file must have columns named 'Period' and 'Score'")
 
     else:
         st.warning('Please upload a CSV file to proceed.')

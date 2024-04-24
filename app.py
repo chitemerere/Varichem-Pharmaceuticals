@@ -2729,7 +2729,7 @@ if password_guess == st.secrets["password"]:
 
             if 'data' in st.session_state and st.session_state.data is not None:
                 # Dynamic selection box for user to choose a product family
-                family_filter = st.selectbox("Select a Product Family", ["All"] + list(st.session_state.data['ProductFamily'].unique()))
+                family_filter = st.selectbox("Select a Product Family", ["All"] + list(st.session_state.data['ProductFamily'].unique()),key="product_family")
 
                 if family_filter != "All":
                     filtered_data = st.session_state.data[st.session_state.data['ProductFamily'] == family_filter]

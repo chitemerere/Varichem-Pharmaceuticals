@@ -1522,7 +1522,7 @@ options = st.sidebar.radio('Select an Analysis:',
                             'Net Promoter Score', 'Product Family'])
 
 # Password input
-password_guess = st.text_input('What is the Password?', type ="password").strip()
+password_guess = st.text_input('What is the Password?', type ="password",key='unique_password_guess').strip()
 
 # Check if password is entered and incorrect
 if password_guess and password_guess != st.secrets["password"]:

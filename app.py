@@ -40,20 +40,20 @@ except LookupError:
 # Initialize the VADER SentimentIntensityAnalyzer
 analyzer = SentimentIntensityAnalyzer()
 
-def calculate_pvm(data):
+def calculate_pvm(data_prices):
     # Replace 'PTY', 'PLY', 'VTY', 'VLY' with actual column names from your file
-    data['PriceImpact'] = (data['Actual_Price'] - data['Budget_Price']) * data['Budget_Volume']
-    data['VolumeImpact'] = data['Budget_Price'] * (data['Actual_Volume'] - data['Budget_Volume'])
-    data['MixImpact'] = (data['Actual_Price'] - data['Budget_Price']) * (data['Actual_Volume'] - data['Budget_Volume'])
-    data['TotalImpact'] = data['PriceImpact'] + data['VolumeImpact'] + data['MixImpact']
-    return data
+    data_prices['PriceImpact'] = (data_prices['Actual_Price'] - data_prices['Budget_Price']) * data_prices['Budget_Volume']
+    data_prices['VolumeImpact'] = data_prices['Budget_Price'] * (data_prices['Actual_Volume'] - data_prices['Budget_Volume'])
+    data_prices['MixImpact'] = (data_prices['Actual_Price'] - data_prices['Budget_Price']) * (data_prices['Actual_Volume'] - data_prices['Budget_Volume'])
+    data_prices['TotalImpact'] = data_prices['PriceImpact'] + data_prices['VolumeImpact'] + data_prices['MixImpact']
+    return data_prices
 
 # Function to plot a waterfall chart
-def plot_waterfall(data, title):
+def plot_waterfall(data_prices, title):
     fig, ax = plt.subplots(figsize=(10, 5))
     baseline = 0
     categories = ['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']
-    values = [data[c].sum() for c in categories]
+    values = [data_prices[c].sum() for c in categories]
 
     # Bars
     bars = ax.bar(categories, values, bottom=baseline, color=['red' if v < 0 else 'green' for v in values])
@@ -70,8 +70,8 @@ def plot_waterfall(data, title):
     st.pyplot(fig)
 
 # Initialize session state variables
-if 'data' not in st.session_state:
-    st.session_state.data = None
+if 'data_prices' not in st.session_state:
+    st.session_state.data_prices = None
 
 # Function to save plot
 def save_plot(fig, filename):
@@ -1395,20 +1395,20 @@ except LookupError:
 # Initialize the VADER SentimentIntensityAnalyzer
 analyzer = SentimentIntensityAnalyzer()
 
-def calculate_pvm(data):
+def calculate_pvm(data_prices):
     # Replace 'PTY', 'PLY', 'VTY', 'VLY' with actual column names from your file
-    data['PriceImpact'] = (data['Actual_Price'] - data['Budget_Price']) * data['Budget_Volume']
-    data['VolumeImpact'] = data['Budget_Price'] * (data['Actual_Volume'] - data['Budget_Volume'])
-    data['MixImpact'] = (data['Actual_Price'] - data['Budget_Price']) * (data['Actual_Volume'] - data['Budget_Volume'])
-    data['TotalImpact'] = data['PriceImpact'] + data['VolumeImpact'] + data['MixImpact']
-    return data
+    data_prices['PriceImpact'] = (data_prices['Actual_Price'] - data_prices['Budget_Price']) * data_prices['Budget_Volume']
+    data_prices['VolumeImpact'] = data_prices['Budget_Price'] * (data_prices['Actual_Volume'] - data_prices['Budget_Volume'])
+    data_prices['MixImpact'] = (data_prices['Actual_Price'] - data_prices['Budget_Price']) * (data_prices['Actual_Volume'] - data_prices['Budget_Volume'])
+    data_prices['TotalImpact'] = data_prices['PriceImpact'] + data_prices['VolumeImpact'] + data_prices['MixImpact']
+    return data_prices
 
 # Function to plot a waterfall chart
-def plot_waterfall(data, title):
+def plot_waterfall(data_prices, title):
     fig, ax = plt.subplots(figsize=(10, 5))
     baseline = 0
     categories = ['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']
-    values = [data[c].sum() for c in categories]
+    values = [data_prices[c].sum() for c in categories]
 
     # Bars
     bars = ax.bar(categories, values, bottom=baseline, color=['red' if v < 0 else 'green' for v in values])
@@ -1425,8 +1425,8 @@ def plot_waterfall(data, title):
     st.pyplot(fig)
 
 # Initialize session state variables
-if 'data' not in st.session_state:
-    st.session_state.data = None
+if 'data_prices' not in st.session_state:
+    st.session_state.data_prices = None
 
 # Function to save plot
 def save_plot(fig, filename):
@@ -1534,7 +1534,7 @@ if password_guess == st.secrets["password"]:
     st.success("Password is correct")
 
     # File uploader
-    uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
+    uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv", key="main_data")
     if uploaded_file is not None:
         data = pd.read_csv(uploaded_file)
 
@@ -2717,33 +2717,32 @@ if password_guess == st.secrets["password"]:
                 else:
                     st.error("CSV file must have columns named 'Period' and 'Score'")
                     
+        # Main content based on sidebar selection
         elif options == 'Product Family':
             st.subheader("PVM Analysis: Product Family")
 
-            # File uploader
-            uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
-            if uploaded_file is not None:
-                data = pd.read_csv(uploaded_file)
-                st.session_state.data = data
-                st.write("Uploaded Data Preview:", data.head())
+            if uploaded_file:
+                if 'Product_Family' in data.columns:
+                    family_options = ['All'] + sorted(data['Product_Family'].unique().tolist())
+                    selected_family = st.selectbox('Select a Product Family:', family_options, key="family_options")
 
-            if 'data' in st.session_state and st.session_state.data is not None:
-                # Dynamic selection box for user to choose a product family
-                family_filter = st.selectbox("Select a Product Family", ["All"] + list(st.session_state.data['ProductFamily'].unique()),key="product_family")
-
-                if family_filter != "All":
-                    filtered_data = st.session_state.data[st.session_state.data['ProductFamily'] == family_filter]
+                    filtered_data = data if selected_family == "All" else data[data['Product_Family'] == selected_family]
+                    pvm_data = calculate_pvm(filtered_data.copy())
+                    st.dataframe(pvm_data.style.applymap(lambda x: 'background-color : red' if isinstance(x, (int, float)) and x < 0 else 'background-color : green'))
+                    plot_waterfall(pvm_data, "Product Family PVM Analysis")
                 else:
-                    filtered_data = st.session_state.data
-
-                pvm_data = calculate_pvm(filtered_data.copy())
-                st.dataframe(pvm_data.style.applymap(lambda x: 'background-color : red' if isinstance(x, (int, float)) and x < 0 else 'background-color : green'))
-
-                plot_waterfall(pvm_data, "Product Family PVM Analysis")
-        
+                    st.error('The uploaded file does not contain a "Product_Family" column. Please check your CSV file.')
+            else:
+                st.warning("Please upload a CSV file to proceed with the 'Product Family' analysis.")
             
     else:
         st.warning('Please upload a CSV file to proceed.')
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:

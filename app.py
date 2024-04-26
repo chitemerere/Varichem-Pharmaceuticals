@@ -89,32 +89,6 @@ def plot_waterfall(data_prices, base_title, selection):
 
     st.pyplot(fig)
 
-
-# def plot_waterfall(data_prices, base_title, selection):
-#     fig, ax = plt.subplots(figsize=(10, 5))
-#     categories = ['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']
-#     values = [data_prices[c].sum() for c in categories]
-#     colors = ['red' if v < 0 else 'green' for v in values]
-
-#     bars = ax.bar(categories, values, color=colors)
-
-#     for bar, value in zip(bars, values):
-#         height = bar.get_height()
-#         ax.annotate(f'{value:.2f}',
-#                     xy=(bar.get_x() + bar.get_width() / 2, height),
-#                     xytext=(0, 3),
-#                     textcoords="offset points",
-#                     ha='center', va='bottom')
-
-#     # Setting dynamic title with the current selection
-#     dynamic_title = f"{base_title} - {selection} - Waterfall Chart"
-#     ax.set_title(dynamic_title)
-#     ax.set_ylabel('Impact ($)')
-#     ax.set_xlabel('Impact Types')
-#     ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-
-#     st.pyplot(fig)
-
 # Initialize session state variables
 if 'data' not in st.session_state:
     st.session_state.data = None
@@ -962,9 +936,14 @@ if password_guess == st.secrets["password"]:
             def check_consecutive_drops(row):
                 # Calculate the percentage change between months
                 changes = row[sales_cols].pct_change().fillna(0)
-                # Check for two or more consecutive drops of specified percentage or more
+                # Identify the drops
                 drops = (changes <= drop_threshold)
-                return drops.sum() >= 2
+                # Check for two or more consecutive drops
+                if drops.sum() >= 2:
+                    # Extract months with drops
+                    drop_months = drops.index[drops].tolist()
+                    return ', '.join(drop_months)
+                return None
 
             # Dropdown for product selection
             product_list = sorted(df['DISCRIPTION'].unique())  # Extract unique product descriptions and sort
@@ -978,18 +957,22 @@ if password_guess == st.secrets["password"]:
             # Filter the DataFrame by 'DISCRIPTION' and 'TOWN'
             filtered_df = df[(df['DISCRIPTION'] == selected_product) & (df['TOWN'] == selected_town)]
 
-            # Apply the function across the rows
-            consecutive_drops = filtered_df.progress_apply(check_consecutive_drops, axis=1)
-
-            # Filter the DataFrame based on the condition
-            final_filtered_df = filtered_df[consecutive_drops]
+            # Apply the function across the rows and filter the DataFrame
+            filtered_df['Drop Months'] = filtered_df.progress_apply(check_consecutive_drops, axis=1)
+            final_filtered_df = filtered_df.dropna(subset=['Drop Months'])
 
             # Handling empty DataFrame
             if final_filtered_df.empty:
                 st.write("No results found for the selected criteria.")
             else:
+                # Construct and display a narrative for each customer with drops
+                for _, row in final_filtered_df.iterrows():
+                    customer = row['NAME']  # Assuming 'CUSTOMER' is the column name for customer details
+                    drop_months = row['Drop Months']
+                    st.write(f"Customer {customer} for {selected_product} in {selected_town} experienced a sales drop of at least {percentage_drop}% during these consecutive months: {drop_months}.")
+
                 try:
-                    final_filtered_df = final_filtered_df.drop(columns=['P-CODE', 'C-CODE'])
+                    final_filtered_df = final_filtered_df.drop(columns=['P-CODE', 'C-CODE', 'Drop Months'])
                 except KeyError as e:
                     print("Columns not found in DataFrame: ", e)
 
@@ -1006,6 +989,7 @@ if password_guess == st.secrets["password"]:
                     file_name='product_alerts_data.csv',
                     mime='text/csv',
                 )
+
 
         elif options == 'Sales Forecasting':
             st.subheader("Sales Forecasting")

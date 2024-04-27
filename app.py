@@ -40,6 +40,12 @@ except LookupError:
 # Initialize the VADER SentimentIntensityAnalyzer
 analyzer = SentimentIntensityAnalyzer()
 
+def calculate_expiry_months(expiry_date):
+    today = datetime.today()
+    expiry = datetime.strptime(expiry_date, '%Y-%m-%d')
+    delta = expiry - today
+    return delta.days // 30
+
 def calculate_pvm(data):
     # Replace 'PTY', 'PLY', 'VTY', 'VLY' with actual column names from your file
     data['PriceImpact'] = (data['Actual_Price'] - data['Budget_Price']) * data['Budget_Volume']
@@ -184,7 +190,7 @@ st.sidebar.title('Navigation')
 options = st.sidebar.radio('Select an Analysis:', 
                            ['Trend Analysis','Geographical Analysis','Product Performance', 'Pharmacy Performance',
                             'Alerts','Sales Forecasting', 'Market Segmentation', 'Sentiment Analysis', 
-                            'Net Promoter Score', 'Product Family', 'Product'])
+                            'Net Promoter Score', 'PVM Analysis Product Family', 'PVM Analysis Product', 'Expiry Alerts'])
 
 # Password input
 password_guess = st.text_input('What is the Password?', type ="password").strip()
@@ -1392,8 +1398,9 @@ if password_guess == st.secrets["password"]:
                 else:
                     st.error("CSV file must have columns named 'Period' and 'Score'")
                     
+                    
         # Main Product Family Options
-        elif options == 'Product Family':
+        elif options == 'PVM Analysis Product Family':
             st.subheader("PVM Analysis: Product Family")
             
             # Assume the data is loaded and available as 'data'
@@ -1410,16 +1417,53 @@ if password_guess == st.secrets["password"]:
                 filtered_data = st.session_state.data[st.session_state.data['Product_Family'] == family_filter] if family_filter != "All" else st.session_state.data
                 # Calculate impacts
                 pvm_data = calculate_pvm(filtered_data.copy())
+                
+                # Ensure numeric types and round
+                columns_to_round = ['Budget_Price', 'Actual_Price','PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact', 'Budget_Volume', 'Actual_Volume']
+                for column in columns_to_round:
+                    pvm_data[column] = pvm_data[column].apply(pd.to_numeric, errors='coerce').apply(lambda x: np.round(x, 2))
+                
+#                 pvm_data[columns_to_round] = pvm_data[columns_to_round].apply(pd.to_numeric, errors='coerce')
+#                 # Rounding values to two decimal places
+#                 pvm_data = pvm_data.round(2)
+
+#                 # Check types and values after conversion
+#                 print("Data types after conversion:", pvm_data.dtypes)
+#                 print("Sample data after rounding:", pvm_data.head())
+
+                # Calculate totals and append to the dataframe
+                total_row = pd.DataFrame([pvm_data[['Budget_Volume', 'Actual_Volume', 'TotalImpact']].sum()], index=['Total'])
+                pvm_data = pd.concat([pvm_data, total_row])
 
                 # Display DataFrame with dynamic title
                 st.write(f"PVM Analysis for {family_filter}")
-                st.dataframe(pvm_data.style.applymap(lambda x: 'background-color : red' if isinstance(x, (int, float)) and x < 0 else 'background-color : green'))
+                st.dataframe(pvm_data.style.applymap(
+                    lambda x: 'background-color: red' if x < 0 else ('background-color: green' if x > 0 else ''),
+                    subset=['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']))
+    
+#                 # Original subset of impact columns
+#                 impact_columns = ['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']
+
+#                 # Assuming columns_to_round is defined earlier and may include other columns not listed in impact_columns
+#                 columns_to_round = ['Budget_Price', 'Actual_Price', 'PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact', 'Budget_Volume', 'Actual_Volume']
+
+#                 # Combine the two lists ensuring unique entries using set to avoid duplicates if any
+#                 combined_subset = list(set(impact_columns + columns_to_round))
+
+#                 # Now apply the styling using the combined subset list
+#                 st.dataframe(pvm_data.style.applymap(
+#                     lambda x: 'background-color: red' if x < 0 else ('background-color: green' if x > 0 else ''),
+#                     subset=combined_subset))
+
+                # Download link for the dataframe
+                csv = pvm_data.to_csv().encode('utf-8')
+                st.download_button(label="Download data as CSV", data=csv, file_name='pvm_data.csv', mime='text/csv')
 
                 # Plot with dynamic title
                 plot_waterfall(pvm_data, "PVM Analysis", family_filter)
                 
         # Individual Product Option
-        elif options == "Product":
+        elif options == 'PVM Analysis Product':
             st.subheader("PVM Analysis: Individual Product")
             
             if 'data' in st.session_state and st.session_state.data is not None:
@@ -1431,12 +1475,53 @@ if password_guess == st.secrets["password"]:
                     filtered_data = st.session_state.data
 
                 pvm_data = calculate_pvm(filtered_data.copy())
+                
+                # Ensure numeric types and round
+                columns_to_round = ['Budget_Price', 'Actual_Price','PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact', 'Budget_Volume', 'Actual_Volume']
+                pvm_data[columns_to_round] = pvm_data[columns_to_round].apply(pd.to_numeric, errors='coerce')
+                # Rounding values to two decimal places
+                pvm_data = pvm_data.round(2)
+                
+                # Calculate totals and append to the dataframe
+                total_row = pd.DataFrame([pvm_data[['Budget_Volume', 'Actual_Volume', 'TotalImpact']].sum()], index=['Total'])
+                pvm_data = pd.concat([pvm_data, total_row])
+                
                 st.write(f"PVM Analysis for {product_filter}")
-                st.dataframe(pvm_data.style.applymap(lambda x: 'background-color : red' if isinstance(x, (int, float)) and x < 0 else 'background-color : green'))
+                st.dataframe(pvm_data.style.applymap(
+                    lambda x: 'background-color: red' if x < 0 else ('background-color: green' if x > 0 else ''),
+                    subset=['PriceImpact', 'VolumeImpact', 'MixImpact', 'TotalImpact']))
 
+                # Download link for the dataframe
+                csv = pvm_data.to_csv().encode('utf-8')
+                st.download_button(label="Download data as CSV", data=csv, file_name='pvm_data.csv', mime='text/csv')
+                
                 # Updated to pass product_filter to plot_waterfall for dynamic title
                 plot_waterfall(pvm_data, "Product PVM Analysis", product_filter)
+                
+        # Expiry Alerts
+        elif options == 'Expiry Alerts':
+            st.subheader("Product Expiry Alerts")
+            
+            # File upload section
+            uploaded_file = st.file_uploader("Upload your stocks CSV file", type=["csv"])
+            if uploaded_file is not None:
+                # Process the file if uploaded
+                data = pd.read_csv(uploaded_file)
 
+                # Add a column for months to expiry
+                data['Months to Expiry'] = data['Expiry_Date'].apply(calculate_expiry_months)
+
+                # Display all products and their expiry in months
+                st.write("All products and their months to expiry:")
+                st.dataframe(data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
+
+                # Filter and alert for products expiring in 3 months to 1 year
+                alert_data = data[(data['Months to Expiry'] >= 3) & (data['Months to Expiry'] <= 12)]
+                if not alert_data.empty:
+                    st.write("Alert: Batches with expiry between 3 months and 1 year:")
+                    st.dataframe(alert_data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
+                else:
+                    st.write("No batches are expiring within 3 months to 1 year.")
             
     else:
         st.warning('Please upload a CSV file to proceed.')

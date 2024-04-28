@@ -1549,7 +1549,7 @@ if password_guess == st.secrets["password"]:
                     # Filter for expired products (less than 3 months to expiry)
                     expired_data = data[data['Months to Expiry'] < 3]
                     if not expired_data.empty:
-                        st.write("Alert: Expired Batches (less than 3 months to expiry):")
+                        st.write("Alert: Unsalable Batches (less than 3 months to expiry):")
                         st.dataframe(expired_data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
 
                         # Allow user to download the expired data as CSV
@@ -1561,51 +1561,7 @@ if password_guess == st.secrets["password"]:
             else:
                 st.write("Please upload a file to see data and alerts.")
             
-#             # Check if 'expiry_data' already exists in the session state
-#             if 'expiry_data' not in st.session_state or st.button('Upload New File'):
-#                 # File upload section
-#                 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="file_uploader")
-#                 if uploaded_file is not None:
-#                     # Load and store the data in the session state
-#                     data = pd.read_csv(uploaded_file)
-#                     # Strip potential extra spaces in column names
-#                     data.columns = data.columns.str.strip()
-#                     st.session_state.expiry_data = data
 
-#             if 'expiry_data' in st.session_state:
-#                 # Process the data stored in session state
-#                 data = st.session_state.expiry_data
-
-#                 # Check if the necessary column exists
-#                 if 'Expiry_Date' not in data.columns:
-#                     st.error("Error: 'Expiry_Date' column not found in the uploaded file. Please check the file and try again.")
-#                 else:
-#                     # Add a column for months to expiry
-#                     data['Months to Expiry'] = data['Expiry_Date'].apply(calculate_expiry_months)
-
-#                     # Display all products and their expiry in months
-#                     st.write("All products and their months to expiry:")
-#                     st.dataframe(data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
-                    
-#                     # Allow user to download the full data as CSV
-#                     csv = to_csv(data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
-#                     st.download_button("Download Full Data as CSV", csv, "full_data.csv", "text/csv", key='download-full-csv')
-            
-#                     # Filter and alert for products expiring in 3 months to 1 year
-#                     alert_data = data[(data['Months to Expiry'] >= 3) & (data['Months to Expiry'] <= 12)]
-#                     if not alert_data.empty:
-#                         st.write("Alert: Batches with expiry between 3 months and 1 year:")
-#                         st.dataframe(alert_data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
-                        
-#                         # Allow user to download the alert data as CSV
-#                         alert_csv = to_csv(alert_data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
-#                         st.download_button("Download Alert Data as CSV", alert_csv, "alert_data.csv", "text/csv", key='download-alert-csv')
-#                     else:
-#                         st.write("No batches are expiring within 3 months to 1 year.")
-#             else:
-#                 st.write("Please upload a file to see data and alerts.")
-
-          
     else:
         st.warning('Please upload a CSV file to proceed.')
 

@@ -196,17 +196,21 @@ options = st.sidebar.radio('Select an Analysis:',
                             'Alerts','Sales Forecasting', 'Market Segmentation', 'Sentiment Analysis', 
                             'Net Promoter Score', 'PVM Analysis Product Family', 'PVM Analysis Product', 'Expiry Alerts'])
 
+# Username input
+username_guess = st.text_input('What is your username?').strip()
+
 # Password input
-password_guess = st.text_input('What is the Password?', type ="password").strip()
+password_guess = st.text_input('What is the Password?', type="password").strip()
 
-# Check if password is entered and incorrect
-if password_guess and password_guess != st.secrets["password"]:
-    st.error("Incorrect password. Please try again.")
-    st.stop()
+# Check if both fields are entered and incorrect
+if username_guess and password_guess:
+    if username_guess != st.secrets["username"] or password_guess != st.secrets["password"]:
+        st.error("Incorrect username or password. Please try again.")
+        st.stop()
 
-# Proceed only if the password is correct
-if password_guess == st.secrets["password"]:
-    st.success("Password is correct")
+# Proceed only if both username and password are correct
+if username_guess == st.secrets["username"] and password_guess == st.secrets["password"]:
+    st.success("Username and password are correct")
 
     # File uploader
     uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
@@ -1509,7 +1513,7 @@ if password_guess == st.secrets["password"]:
             # Check if 'expiry_data' already exists in the session state
             if 'expiry_data' not in st.session_state or st.button('Upload New File'):
                 # File upload section
-                uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"], key="file_uploader")
+                uploaded_file = st.file_uploader("Upload your stocks CSV file", type=["csv"], key="file_uploader")
                 if uploaded_file is not None:
                     # Load and store the data in the session state
                     data = pd.read_csv(uploaded_file)
@@ -1554,7 +1558,7 @@ if password_guess == st.secrets["password"]:
 
                         # Allow user to download the expired data as CSV
                         expired_csv = to_csv(expired_data[['Product', 'Batch_Number', 'Stocks', 'Months to Expiry']])
-                        st.download_button("Download Expired Data as CSV", expired_csv, "expired_data.csv", "text/csv", key='download-expired-csv')
+                        st.download_button("Download Unsalable Data as CSV", expired_csv, "unsalable_data.csv", "text/csv", key='download-expired-csv')
                     else:
                         st.write("No batches are expired (less than 3 months to expiry).")
 
